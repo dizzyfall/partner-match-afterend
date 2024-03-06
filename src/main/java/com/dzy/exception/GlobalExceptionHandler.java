@@ -15,13 +15,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
-    public BaseResponse businessExceptionHandler(BusinessException e) {
+    public BaseResponse<?> businessExceptionHandler(BusinessException e) {
         log.error("businessException:" + e.getMessage(), e);
         return ResponseUtil.error(e.getCode(), e.getMessage(), e.getDescription());
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public BaseResponse runtimeExceptionHandler(RuntimeException e) {
+    public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("runtimeException", e);
         return ResponseUtil.error(StatusCode.SYSTEM_ERROR);
     }
