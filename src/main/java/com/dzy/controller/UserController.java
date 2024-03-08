@@ -6,8 +6,10 @@ import com.dzy.common.BaseResponse;
 import com.dzy.constant.StatusCode;
 import com.dzy.exception.BusinessException;
 import com.dzy.model.domain.User;
+import com.dzy.model.dto.user.UserRecommendRequest;
 import com.dzy.model.request.UserLoginRequest;
 import com.dzy.model.request.UserRegisterRequest;
+import com.dzy.model.vo.UserVO;
 import com.dzy.service.UserService;
 import com.dzy.util.ResponseUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -138,5 +140,25 @@ public class UserController {
         //todo,分页固定，要封装分页参数
         Page<User> userRecommendList = userService.userRecommendByPage(new Page<>(1, 10), queryWrapper, request);
         return ResponseUtil.success(StatusCode.SEARCH_SUCCESS, userRecommendList, "用户推荐分页查询成功");
+    }
+
+    /**
+     * 基于编辑距离算法的用户推荐
+     *
+     * @param userRecommendRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/recommend/user")
+    public BaseResponse<List<UserVO>> recommendUser(@RequestBody UserRecommendRequest userRecommendRequest, HttpServletRequest request) {
+        if (userRecommendRequest == null) {
+            throw new BusinessException(StatusCode.PARAM_ERROR);
+        }
+        if (request == null) {
+            throw new BusinessException(StatusCode.PARAM_ERROR);
+        }
+        User loginUser = userService.getUserLoginState(request);
+        List<UserVO> userRecommendList = userService.userRecommend(userRecommendRequest, loginUser);
+        return ResponseUtil.success(StatusCode.SEARCH_SUCCESS,userRecommendList,"队伍推荐成功");
     }
 }

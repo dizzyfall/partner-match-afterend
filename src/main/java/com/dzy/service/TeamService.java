@@ -82,4 +82,5 @@ public interface TeamService extends IService<Team> {
     List<UserTeamVO> teamMyJoin(TeamMyJoinAndCreateRequest teamMyJoinAndCreateRequest, User loginUser);
 
     List<UserTeamVO> teamMyCreate(TeamMyJoinAndCreateRequest teamMyJoinAndCreateRequest, User loginUser);
+
 }

@@ -7,11 +7,11 @@ import com.dzy.exception.BusinessException;
 import com.dzy.model.domain.Team;
 import com.dzy.model.domain.User;
 import com.dzy.model.dto.team.*;
+import com.dzy.model.vo.UserTeamVO;
 import com.dzy.service.TeamService;
 import com.dzy.service.UserService;
 import com.dzy.service.UserTeamService;
 import com.dzy.util.ResponseUtil;
-import com.dzy.model.vo.UserTeamVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.web.bind.WebDataBinder;
@@ -159,8 +159,8 @@ public class teamController {
             throw new BusinessException(StatusCode.PARAM_ERROR);
         }
         User loginUser = userService.getUserLoginState(request);
-        List<UserTeamVO> myJoinTeamList = teamService.teamMyJoin(teamMyJoinAndCreateRequest,loginUser);
-        return ResponseUtil.success(StatusCode.SEARCH_SUCCESS,myJoinTeamList,"查询用户加入的队伍成功");
+        List<UserTeamVO> myJoinTeamList = teamService.teamMyJoin(teamMyJoinAndCreateRequest, loginUser);
+        return ResponseUtil.success(StatusCode.SEARCH_SUCCESS, myJoinTeamList, "查询用户加入的队伍成功");
     }
 
     /**
@@ -171,7 +171,7 @@ public class teamController {
      * @return
      */
     @PostMapping("/my/create")
-    public BaseResponse<List<UserTeamVO>> myCreatedTeam(@RequestBody  TeamMyJoinAndCreateRequest teamMyJoinAndCreateRequest, HttpServletRequest request) {
+    public BaseResponse<List<UserTeamVO>> myCreatedTeam(@RequestBody TeamMyJoinAndCreateRequest teamMyJoinAndCreateRequest, HttpServletRequest request) {
         if (teamMyJoinAndCreateRequest == null) {
             throw new BusinessException(StatusCode.PARAM_NULL_ERROR);
         }
@@ -179,8 +179,7 @@ public class teamController {
             throw new BusinessException(StatusCode.PARAM_ERROR);
         }
         User loginUser = userService.getUserLoginState(request);
-        List<UserTeamVO> myCreateTeamList= teamService.teamMyCreate(teamMyJoinAndCreateRequest, loginUser);
-        return ResponseUtil.success(StatusCode.SEARCH_SUCCESS,myCreateTeamList, "查询用户创建的队伍成功");
+        List<UserTeamVO> myCreateTeamList = teamService.teamMyCreate(teamMyJoinAndCreateRequest, loginUser);
+        return ResponseUtil.success(StatusCode.SEARCH_SUCCESS, myCreateTeamList, "查询用户创建的队伍成功");
     }
-
 }

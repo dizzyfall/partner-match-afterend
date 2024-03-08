@@ -291,7 +291,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             queryWrapper.eq("teamStatus", teamStatusEnum.getStatus());
         }
         //不展示已过期的队伍（根据过期时间筛选）
-        queryWrapper.and(qw->qw.isNull("teamExpireTime").or().ge("teamExpireTime", new Date()));
+        queryWrapper.and(qw -> qw.isNull("teamExpireTime").or().ge("teamExpireTime", new Date()));
         Long teamUserId = teamQueryRequest.getTeamUserId();
         //根据创建人查询
         if (teamUserId != null && teamUserId > 0) {
@@ -403,7 +403,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         //加锁
         RLock lock = redissonClient.getLock("pma:teamjoin:lock");
         try {
-            while (true){
+            while (true) {
                 if (lock.tryLock(0, -1, TimeUnit.MILLISECONDS)) {
                     //用户最多加入 5 个队伍
                     Long userId = loginUser.getUserId();
@@ -502,31 +502,31 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         Long userId = loginUser.getUserId();
         //登录者id是否和前端请求参数用户id一致
         //只能查看自己的
-        if(!userId.equals(teamUserId)){
+        if (!userId.equals(teamUserId)) {
             throw new BusinessException(StatusCode.ADMIN_ERROR);
         }
         //用户创建的队伍列表
         List<UserTeamVO> userCreateTeamList = getUserCreateTeamList(userId);
         //用户创建和加入的队伍列表
         QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userId",userId);
+        queryWrapper.eq("userId", userId);
         List<UserTeam> userJoinAndCreateTeamList = userTeamService.list(queryWrapper);
         List<UserTeamVO> userJoinTeamList = new ArrayList<>();
         //用户创建的队伍列表是否为空,是，则userJoinAndCreateTeamList全部都是加入的队伍
-        if(CollectionUtils.isEmpty(userCreateTeamList)){
+        if (CollectionUtils.isEmpty(userCreateTeamList)) {
             for (UserTeam userTeam : userJoinAndCreateTeamList) {
                 Long teamId = userTeam.getTeamId();
                 Team team = this.getById(teamId);
                 UserTeamVO userTeamVO = teamToUserTeamVO(team);
                 userJoinTeamList.add(userTeamVO);
             }
-        }else{
+        } else {
             List<Long> userCreateTeamIdList = new ArrayList<>();
             for (UserTeamVO userTeamVO : userCreateTeamList) {
                 userCreateTeamIdList.add(userTeamVO.getTeamId());
             }
             for (UserTeam userTeam : userJoinAndCreateTeamList) {
-                if(userCreateTeamIdList.contains(userTeam.getTeamId())){
+                if (userCreateTeamIdList.contains(userTeam.getTeamId())) {
                     break;
                 }
                 Long teamId = userTeam.getTeamId();
@@ -544,7 +544,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         Long userId = loginUser.getUserId();
         //登录者id是否和前端请求参数用户id一致
         //只能查看自己的
-        if(!userId.equals(teamUserId)){
+        if (!userId.equals(teamUserId)) {
             throw new BusinessException(StatusCode.ADMIN_ERROR);
         }
         return getUserCreateTeamList(userId);
@@ -556,9 +556,9 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
      * @param userId
      * @return
      */
-    public List<UserTeamVO> getUserCreateTeamList(Long userId){
+    public List<UserTeamVO> getUserCreateTeamList(Long userId) {
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("teamUserId",userId);
+        queryWrapper.eq("teamUserId", userId);
         List<Team> userJoinAndCreateTeamList = this.list(queryWrapper);
         List<UserTeamVO> userTeamVOList = new ArrayList<>();
         for (Team team : userJoinAndCreateTeamList) {
@@ -574,9 +574,12 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
      * @param team
      * @return
      */
-    public UserTeamVO teamToUserTeamVO(Team team){
+    public UserTeamVO teamToUserTeamVO(Team team) {
+        if(team == null){
+            throw new BusinessException(StatusCode.PARAM_NULL_ERROR);
+        }
         UserTeamVO userTeamVO = new UserTeamVO();
-        BeanUtils.copyProperties(team,userTeamVO);
+        BeanUtils.copyProperties(team, userTeamVO);
         return userTeamVO;
     }
 
@@ -586,14 +589,14 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
      * @param teamId
      * @return
      */
-    public long getTeamUserNum(Long teamId){
-        if(teamId == null || teamId<0){
+    public long getTeamUserNum(Long teamId) {
+        if (teamId == null || teamId < 0) {
             throw new BusinessException(StatusCode.PARAM_ERROR);
         }
         QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("teamId",teamId);
+        queryWrapper.eq("teamId", teamId);
         long count = userTeamService.count(queryWrapper);
-        if(count<0) {
+        if (count < 0) {
             throw new BusinessException(StatusCode.DATABASE_ERROR);
         }
         return count;

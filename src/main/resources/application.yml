@@ -3,17 +3,13 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/xxx?serverTimezone=Asia/Shanghai&characterEncoding=utf8
     username:
-    password: 
+    password:
   profiles:
     active: dev
   mvc:
-    #    static-path-pattern: /img/**
     #修改swagger路径匹配，兼容springboot2.6x以后版本
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
-  #  web:
-  #    resources:
-  #      static-locations: classpath:/img/**
   redis:
     database: 0 #使用的数据库号
     host:
@@ -27,7 +23,7 @@ mybatis-plus:
   mapper-locations: classpath:mybatis/mappers/**
   configuration:
     map-underscore-to-camel-case: false #关闭自动驼峰映射
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #数据库日志
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #数据库日志
   global-config:
     db-config:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)

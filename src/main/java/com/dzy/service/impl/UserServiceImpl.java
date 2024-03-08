@@ -10,9 +10,15 @@ import com.dzy.constant.StatusCode;
 import com.dzy.exception.BusinessException;
 import com.dzy.mapper.UserMapper;
 import com.dzy.model.domain.User;
+import com.dzy.model.dto.user.UserRecommendRequest;
+import com.dzy.model.vo.UserVO;
+import com.dzy.service.TagService;
 import com.dzy.service.UserService;
+import com.dzy.util.AlgorithmUtil;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -22,10 +28,12 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.dzy.constant.UserConstant.ADMIN_ROLE;
 import static com.dzy.constant.UserConstant.USER_LOGIN_STATE;
@@ -45,6 +53,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private TagService tagService;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -342,6 +353,108 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.error("redis set userRecommendPage error", e);
         }
         return userRecommendPage;
+    }
+
+    /**
+     * 基于逻辑距离的用户推荐
+     *
+     * @param userRecommendRequest
+     * @param loginUser
+     * @return
+     */
+    //我想的这个思路一坨狗屎
+    @Override
+    public List<UserVO> userRecommend(UserRecommendRequest userRecommendRequest, User loginUser) {
+        if(userRecommendRequest==null){
+            throw new BusinessException(StatusCode.PARAM_ERROR);
+        }
+        if(loginUser == null){
+            throw new BusinessException(StatusCode.NO_LOGIN_ERROR);
+        }
+        Long requestUserId = userRecommendRequest.getUserId();
+        Long loginUserUserId = loginUser.getUserId();
+        if(requestUserId == null || loginUserUserId == null || requestUserId<0 ||loginUserUserId<0){
+            throw new BusinessException(StatusCode.PARAM_ERROR);
+        }
+        if(!requestUserId.equals(loginUserUserId)){
+            throw new BusinessException(StatusCode.PARAM_ERROR);
+        }
+        //获取待推荐用户的标签
+        String recommendUserTags = loginUser.getTags();
+        //将标签json转换为列表对象
+        List<String> recommendUserTagList = tagService.convertTagsToTagNameList(recommendUserTags);
+        //获取出自己外全部用户的id和标签
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("userId","tags");
+        queryWrapper.isNotNull("tags");
+        List<User> userList = this.list(queryWrapper);
+        //存放用户及其分数
+        //todo 有没有其他方式
+        //Map<User,Long> scoreMap = new HashMap<>();
+        List<Pair<User,Long>> scoreList = new ArrayList<>();
+        //依次比较自己与其他用户的逻辑距离
+        for (User otherUser : userList) {
+            //获取其他人标签
+            String otherUserTags = otherUser.getTags();
+            List<String> otherUserTagList = tagService.convertTagsToTagNameList(otherUserTags);
+            //校验标签和剔除自己
+            //todo 能否在数据库查询的时候就剔除自己 383行
+            if(CollectionUtils.isEmpty(otherUserTagList) || requestUserId.equals(otherUser.getUserId())){
+                continue;
+            }
+            //调用算法比较
+            long score = AlgorithmUtil.minDistance(recommendUserTagList, otherUserTagList);
+            //存入用户以及其分数
+            scoreList.add(new Pair<>(otherUser, score));
+        }
+        //对scoreMap排序，取前N个
+        int topN = userRecommendRequest.getTopN();
+        //升序
+        //todo 学习stream流
+        //todo limit(long n)用法，如果数据数量>n,返回前n个数据，如果据数量<n,返回所有！！！，也就是说多出来的部分不会给你自动创建空对象！
+        List<Pair<User, Long>> topNPairList = scoreList.
+                stream().
+                sorted((a, b) -> (int) (a.getValue() - b.getValue())).
+                limit(topN).
+                collect(Collectors.toList());
+        //获取排序的用户id列表
+        List<Long> userIdList = new ArrayList<>();
+        for (Pair<User, Long> userLongPair : topNPairList) {
+            userIdList.add(userLongPair.getKey().getUserId());
+        }
+        //查询用户，乱序
+        QueryWrapper<User> userIdQueryWrapper = new QueryWrapper<>();
+        userIdQueryWrapper.in("userId", userIdList);
+        List<User> recommendUserUnorderList = this.list(userIdQueryWrapper);
+        //根据id顺序排列用户
+        List<UserVO> recommendUserList = new ArrayList<>(Collections.nCopies(topN,new UserVO()));
+        //小bug，对ArrayList理解不够深入，再没初始化的列表钟按索引加入必须从0开始，要维护列表的连续性
+        //简单解决方法，初始化
+        for (User user : recommendUserUnorderList) {
+            int index = userIdList.indexOf(user.getUserId());
+            //如果没有对应下标
+            if(index==-1){
+                continue;
+            }
+            UserVO userVO = userToUserVO(user);
+            recommendUserList.set(index,userVO);
+        }
+        return recommendUserList.stream().filter(userVO -> userVO.getUserId()!=null).collect(Collectors.toList());
+    }
+
+    /**
+     * 用户信息脱敏，将user转为userVO
+     *
+     * @param user
+     * @return
+     */
+    public UserVO userToUserVO(User user){
+        if(user == null){
+            throw new BusinessException(StatusCode.PARAM_NULL_ERROR);
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+        return userVO;
     }
 }
 

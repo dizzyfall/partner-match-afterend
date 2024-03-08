@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.dzy.model.domain.User;
+import com.dzy.model.dto.user.UserRecommendRequest;
+import com.dzy.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -109,4 +111,6 @@ public interface UserService extends IService<User> {
      * @return Page<User>
      */
     Page<User> userRecommendByPage(IPage<User> page, Wrapper<User> queryWrapper, HttpServletRequest request);
+
+    List<UserVO> userRecommend(UserRecommendRequest userRecommendRequest, User loginUser);
 }
